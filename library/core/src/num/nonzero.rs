@@ -7,6 +7,7 @@ use crate::str::FromStr;
 use super::from_str_radix;
 use super::{IntErrorKind, ParseIntError};
 use crate::intrinsics;
+use crate::core::hint::unreachable_unchecked;
 
 macro_rules! impl_nonzero_fmt {
     ( #[$stability: meta] ( $( $Trait: ident ),+ ) for $Ty: ident ) => {
@@ -80,9 +81,13 @@ macro_rules! nonzero_integers {
                 #[inline]
                 #[rustc_const_stable(feature = "const_nonzero_get", since = "1.34.0")]
                 pub const fn get(self) -> $Int {
-                    self.0
-                }
+                    if self.0 != 0 {
+                        return self.0
+                    }
 
+                    // SAFETY: NonZeroN type can not be 0. This helps llvm optimization
+                    unsafe { unreachable_unchecked() }
+                }
             }
 
             #[stable(feature = "from_nonzero", since = "1.31.0")]
